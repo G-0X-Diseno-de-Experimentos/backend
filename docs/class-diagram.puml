@@ -1,0 +1,984 @@
+@startuml
+package textilflow-backend {
+
+    ' --- BOUNDED CONTEXT: IAM ---
+    package iam {
+        package domain {
+            package model {
+                package aggregates {
+                    class User <<AggregateRoot>> {
+                        - String name
+                        - String email
+                        - String password
+                        - Roles role
+                        - String country
+                        - String city
+                        - String address
+                        - String phone
+                        + updateRole(Roles newRole)
+                        + getRoleName(): String
+                    }
+                }
+                package commands {
+                    class SignInCommand <<record>> {
+                        - String email
+                        - String password
+                    }
+                    class SignUpCommand <<record>> {
+                        - String name
+                        - String email
+                        - String password
+                        - String country
+                        - String city
+                        - String address
+                        - String phone
+                        - Roles role
+                    }
+                    class UpdateUserRoleCommand <<record>> {
+                        - Long userId
+                        - Roles newRole
+                    }
+                    class UpdateUserDataCommand <<record>> {
+                        - Long userId
+                        - String name
+                        - String email
+                        - String country
+                        - String city
+                        - String address
+                        - String phone
+                    }
+                }
+                package queries {
+                    class GetUserByEmailQuery <<record>> {
+                        - String email
+                    }
+                    class GetUserByIdQuery <<record>> {
+                        - Long userId
+                    }
+                }
+                package valueobjects {
+                    enum Roles {
+                        BUSINESSMAN
+                        SUPPLIER
+                    }
+                    class EmailAddress <<ValueObject>> {
+                        - String address
+                    }
+                }
+            }
+            package services {
+                interface UserCommandService {
+                    + Optional<User> handle(SignUpCommand command)
+                    + Optional<User> handle(UpdateUserRoleCommand command)
+                    + Optional<User> handle(UpdateUserDataCommand command)
+                    + Optional<ImmutablePair<User, String>> handle(SignInCommand command)
+                }
+                interface UserQueryService {
+                    + Optional<User> handle(GetUserByIdQuery query)
+                    + Optional<User> handle(GetUserByEmailQuery query)
+                }
+            }
+        }
+        package application {
+            package internal {
+                package commandservices {
+                    class UserCommandServiceImpl {
+                        - UserRepository userRepository
+                        - HashingService hashingService
+                        - TokenService tokenService
+                        - ApplicationEventPublisher eventPublisher
+                        + Optional<User> handle(SignUpCommand command)
+                        + Optional<ImmutablePair<User, String>> handle(SignInCommand command)
+                        + Optional<User> handle(UpdateUserRoleCommand command)
+                        + Optional<User> handle(UpdateUserDataCommand command)
+                    }
+                }
+                package queryservices {
+                    class UserQueryServiceImpl {
+                        - UserRepository userRepository
+                        + Optional<User> handle(GetUserByIdQuery query)
+                        + Optional<User> handle(GetUserByEmailQuery query)
+                    }
+                }
+            }
+        }
+        package infrastructure {
+            package hashing {
+                interface HashingService {
+                    + String encode(String password)
+                    + boolean matches(String rawPassword, String encodedPassword)
+                }
+            }
+            package tokens {
+                interface TokenService {
+                    + String generateToken(String email)
+                }
+            }
+            package persistence {
+                package jpa {
+                    interface UserRepository {
+                        + Optional<User> findByEmail(String email)
+                        + Optional<User> findById(Long id)
+                        + boolean existsByEmail(String email)
+                        + User save(User user)
+                    }
+                }
+            }
+        }
+    }
+
+    ' --- BOUNDED CONTEXT: BATCHES ---
+    package batches {
+        package domain {
+            package model {
+                package aggregates {
+                    class Batch <<AggregateRoot>> {
+                        - String code
+                        - String client
+                        - Long businessmanId
+                        - Long supplierId
+                        - String fabricType
+                        - String color
+                        - Integer quantity
+                        - Double price
+                        - String observations
+                        - String address
+                        - LocalDate date
+                        - BatchStatus status
+                        - String imageUrl
+                        + updateInformation(...)
+                    }
+                }
+                package commands {
+                    class CreateBatchCommand <<record>> {
+                        - String code
+                        - String client
+                        - Long businessmanId
+                        - Long supplierId
+                        - String fabricType
+                        - String color
+                        - Integer quantity
+                        - Double price
+                        - String observations
+                        - String address
+                        - LocalDate date
+                        - BatchStatus status
+                        - String imageUrl
+                    }
+                    class UpdateBatchCommand <<record>> {
+                        - Long batchId
+                        - String code
+                        - String client
+                        - Long businessmanId
+                        - Long supplierId
+                        - String fabricType
+                        - String color
+                        - Integer quantity
+                        - Double price
+                        - String observations
+                        - String address
+                        - LocalDate date
+                        - BatchStatus status
+                        - String imageUrl
+                    }
+                    class DeleteBatchCommand <<record>> {
+                        - Long batchId
+                    }
+                }
+                package queries {
+                    class GetAllBatchesQuery <<record>> {}
+                    class GetBatchByIdQuery <<record>> {
+                        - Long batchId
+                    }
+                }
+                package valueobjects {
+                    enum BatchStatus {
+                        PENDING
+                        IN_PROGRESS
+                        COMPLETED
+                        CANCELLED
+                    }
+                }
+            }
+            package services {
+                interface BatchCommandService {
+                    + Long handle(CreateBatchCommand command)
+                    + Optional<Batch> handle(UpdateBatchCommand command)
+                    + void handle(DeleteBatchCommand command)
+                }
+                interface BatchQueryService {
+                    + Optional<Batch> handle(GetBatchByIdQuery query)
+                    + List<Batch> handle(GetAllBatchesQuery query)
+                }
+            }
+        }
+        package application {
+            package internal {
+                package commandservices {
+                    class BatchCommandServiceImpl {
+                        - BatchRepository batchRepository
+                        - ProfilesContextFacade profilesContextFacade
+                        - ApplicationEventPublisher eventPublisher
+                        + Long handle(CreateBatchCommand command)
+                        + Optional<Batch> handle(UpdateBatchCommand command)
+                        + void handle(DeleteBatchCommand command)
+                    }
+                }
+                package queryservices {
+                    class BatchQueryServiceImpl {
+                        - BatchRepository batchRepository
+                        + Optional<Batch> handle(GetBatchByIdQuery query)
+                        + List<Batch> handle(GetAllBatchesQuery query)
+                    }
+                }
+            }
+        }
+        package infraestructure {
+            package persistence {
+                package repositories {
+                    interface BatchRepository {
+                        + List<Batch> findByBusinessmanId(Long)
+                        + List<Batch> findBySupplierId(Long)
+                        + boolean existsByCode(String)
+                        + boolean existsByCodeAndIdIsNot(String, Long)
+                        + Optional<Batch> findById(Long)
+                        + Batch save(Batch)
+                        + void deleteById(Long)
+                    }
+                }
+            }
+        }
+    }
+
+    ' --- BOUNDED CONTEXT: PROFILES ---
+    package profiles {
+        package domain {
+            package model {
+                package aggregates {
+                    class Businessman <<AggregateRoot>> {
+                        - Long userId
+                        - CompanyName companyName
+                        - Ruc ruc
+                        - BusinessType businessType
+                        - LogoUrl logoUrl
+                        - String description
+                        - String website
+                        - Date createdAt
+                        - Date updatedAt
+                        + updateInformation(CompanyName, Ruc, BusinessType, String, String)
+                        + updateLogo(LogoUrl logoUrl)
+                        + getCompanyNameValue(): String
+                        + getRucValue(): String
+                        + getBusinessTypeValue(): String
+                        + getLogoUrlValue(): String
+                    }
+                    class Supplier <<AggregateRoot>> {
+                        - Long userId
+                        - CompanyName companyName
+                        - Ruc ruc
+                        - Specialization specialization
+                        - LogoUrl logoUrl
+                        - String description
+                        - String certifications
+                        - Date createdAt
+                        - Date updatedAt
+                        + updateInformation(CompanyName, Ruc, Specialization, String, String)
+                        + updateLogo(LogoUrl logoUrl)
+                        + getCompanyNameValue(): String
+                        + getRucValue(): String
+                        + getSpecializationValue(): String
+                        + getLogoUrlValue(): String
+                    }
+                }
+                package commands {
+                    class CreateBusinessmanCommand <<record>> {
+                        - Long userId
+                        - String companyName
+                        - String ruc
+                        - String businessType
+                        - String description
+                        - String website
+                    }
+                    class CreateSupplierCommand <<record>> {
+                        - Long userId
+                        - String companyName
+                        - String ruc
+                        - String specialization
+                        - String description
+                        - String certifications
+                    }
+                    class UpdateBusinessmanCommand <<record>> {
+                        - Long userId
+                        - String companyName
+                        - String ruc
+                        - String businessType
+                        - String description
+                        - String website
+                        - String name
+                        - String email
+                        - String country
+                        - String city
+                        - String address
+                        - String phone
+                    }
+                    class UpdateSupplierCommand <<record>> {
+                        - Long userId
+                        - String companyName
+                        - String ruc
+                        - String specialization
+                        - String description
+                        - String certifications
+                        - String name
+                        - String email
+                        - String country
+                        - String city
+                        - String address
+                        - String phone
+                    }
+                    class DeleteLogoCommand <<record>> {
+                        - Long userId
+                    }
+                    class UploadLogoCommand <<record>> {
+                        - Long userId
+                        - String logoUrl
+                    }
+                }
+                package queries {
+                    class GetAllBusinessmenQuery <<record>> {}
+                    class GetBusinessmanByUserIdQuery <<record>> {
+                        - Long userId
+                    }
+                    class GetAllSuppliersQuery <<record>> {}
+                    class GetSupplierByUserIdQuery <<record>> {
+                        - Long userId
+                    }
+                    class GetProfileByUserIdQuery <<record>> {
+                        - Long userId
+                    }
+                }
+                package valueobjects {
+                    class CompanyName <<ValueObject>> {
+                        - String name
+                        + CompanyName(String name)
+                    }
+                    class Ruc <<ValueObject>> {
+                        - String number
+                        + Ruc(String number)
+                    }
+                    class BusinessType <<ValueObject>> {
+                        - String type
+                        + BusinessType(String type)
+                    }
+                    class Specialization <<ValueObject>> {
+                        - String area
+                        + Specialization(String area)
+                    }
+                    class LogoUrl <<ValueObject>> {
+                        - String url
+                        + LogoUrl(String url)
+                        + isEmpty(): boolean
+                    }
+                    class UserId <<ValueObject>> {
+                        - Long id
+                        + UserId(Long id)
+                    }
+                }
+            }
+            package services {
+                interface BusinessmanCommandService {
+                    + Optional<Businessman> handle(CreateBusinessmanCommand command)
+                    + Optional<Businessman> handle(UpdateBusinessmanCommand command)
+                    + Optional<Businessman> handle(UploadLogoCommand command)
+                    + Optional<Businessman> handle(DeleteLogoCommand command)
+                }
+                interface BusinessmanQueryService {
+                    + Optional<Businessman> handle(GetBusinessmanByUserIdQuery query)
+                    + List<Businessman> handle(GetAllBusinessmenQuery query)
+                }
+                interface SupplierCommandService {
+                    + Optional<Supplier> handle(CreateSupplierCommand command)
+                    + Optional<Supplier> handle(UpdateSupplierCommand command)
+                    + Optional<Supplier> handle(UploadLogoCommand command)
+                    + Optional<Supplier> handle(DeleteLogoCommand command)
+                }
+                interface SupplierQueryService {
+                    + Optional<Supplier> handle(GetSupplierByUserIdQuery query)
+                    + List<Supplier> handle(GetAllSuppliersQuery query)
+                }
+            }
+        }
+        package application {
+            package internal {
+                package commandservices {
+                    class BusinessmanCommandServiceImpl {
+                        - BusinessmanRepository businessmanRepository
+                        - ExternalIamService externalIamService
+                        - ApplicationEventPublisher eventPublisher
+                        + Optional<Businessman> handle(CreateBusinessmanCommand command)
+                        + Optional<Businessman> handle(UpdateBusinessmanCommand command)
+                        + Optional<Businessman> handle(UploadLogoCommand command)
+                        + Optional<Businessman> handle(DeleteLogoCommand command)
+                    }
+                    class SupplierCommandServiceImpl {
+                        - SupplierRepository supplierRepository
+                        - ExternalIamService externalIamService
+                        - ApplicationEventPublisher eventPublisher
+                        + Optional<Supplier> handle(CreateSupplierCommand command)
+                        + Optional<Supplier> handle(UpdateSupplierCommand command)
+                        + Optional<Supplier> handle(UploadLogoCommand command)
+                        + Optional<Supplier> handle(DeleteLogoCommand command)
+                    }
+                }
+                package queryservices {
+                    class BusinessmanQueryServiceImpl {
+                        - BusinessmanRepository businessmanRepository
+                        + Optional<Businessman> handle(GetBusinessmanByUserIdQuery query)
+                        + List<Businessman> handle(GetAllBusinessmenQuery query)
+                    }
+                    class SupplierQueryServiceImpl {
+                        - SupplierRepository supplierRepository
+                        + Optional<Supplier> handle(GetSupplierByUserIdQuery query)
+                        + List<Supplier> handle(GetAllSuppliersQuery query)
+                    }
+                }
+            }
+        }
+        package infrastructure {
+            package persistence {
+                package repositories {
+                    interface BusinessmanRepository {
+                        + Optional<Businessman> findByUserId(Long userId)
+                        + boolean existsByUserId(Long userId)
+                        + void deleteByUserId(Long userId)
+                        + Businessman save(Businessman businessman)
+                        + List<Businessman> findAll()
+                    }
+                    interface SupplierRepository {
+                        + Optional<Supplier> findByUserId(Long userId)
+                        + boolean existsByUserId(Long userId)
+                        + void deleteByUserId(Long userId)
+                        + Supplier save(Supplier supplier)
+                        + List<Supplier> findAll()
+                    }
+                }
+            }
+        }
+        package interfaces {
+            package acl {
+                interface ProfilesContextFacade {
+                    + Optional<UserData> getUserById(Long userId)
+                    + boolean existsBusinessmanByUserId(Long userId)
+                    + boolean existsSupplierByUserId(Long userId)
+                }
+            }
+        }
+    }
+
+    ' --- BOUNDED CONTEXT: REVIEWS ---
+    package reviews {
+        package domain {
+            package model {
+                package aggregates {
+                    class SupplierReview <<AggregateRoot>> {
+                        - SupplierId supplierId
+                        - BusinessmanId businessmanId
+                        - Rating rating
+                        - ReviewContent reviewContent
+                        + update(UpdateSupplierReviewCommand command)
+                        + update(Integer newRating, String newReviewContent)
+                        + belongsToBusinessman(BusinessmanId businessmanId): boolean
+                        + isForSupplier(SupplierId supplierId): boolean
+                        + getSupplierIdValue(): Long
+                        + getBusinessmanIdValue(): Long
+                        + getRatingValue(): Integer
+                        + getReviewContentValue(): String
+                    }
+                }
+                package commands {
+                    class CreateSupplierReviewCommand <<record>> {
+                        - Long supplierId
+                        - Long businessmanId
+                        - Integer rating
+                        - String reviewContent
+                    }
+                    class UpdateSupplierReviewCommand <<record>> {
+                        - Long reviewId
+                        - Integer rating
+                        - String reviewContent
+                    }
+                }
+                package queries {
+                    class GetReviewsBySupplierIdQuery <<record>> {
+                        - Long supplierId
+                    }
+                    class GetReviewByIdQuery <<record>> {
+                        - Long reviewId
+                    }
+                    class CheckIfBusinessmanReviewedSupplierQuery <<record>> {
+                        - Long supplierId
+                        - Long businessmanId
+                    }
+                }
+                package valueobjects {
+                    class SupplierId <<ValueObject>> {
+                        - Long supplierId
+                        + SupplierId(Long supplierId)
+                        + SupplierId(String supplierId)
+                        + value(): String
+                    }
+                    class BusinessmanId <<ValueObject>> {
+                        - Long businessmanId
+                        + BusinessmanId(Long businessmanId)
+                        + BusinessmanId(String businessmanId)
+                        + value(): String
+                    }
+                    class Rating <<ValueObject>> {
+                        - Integer value
+                        + Rating(Integer value)
+                        + Rating(String value)
+                        + isExcellent(): boolean
+                        + isPoor(): boolean
+                        + getDescription(): String
+                    }
+                    class ReviewContent <<ValueObject>> {
+                        - String content
+                        + ReviewContent(String content)
+                    }
+                }
+                package events {
+                    class ReviewCreatedEvent <<DomainEvent>> {
+                        - Long reviewId
+                        - SupplierId supplierId
+                        - BusinessmanId businessmanId
+                        - Rating rating
+                    }
+                    class ReviewUpdatedEvent <<DomainEvent>> {
+                        - Long reviewId
+                        - SupplierId supplierId
+                        - BusinessmanId businessmanId
+                        - Rating oldRating
+                        - Rating newRating
+                    }
+                }
+            }
+            package services {
+                interface SupplierReviewCommandService {
+                    + Optional<SupplierReview> handle(CreateSupplierReviewCommand command)
+                    + Optional<SupplierReview> handle(UpdateSupplierReviewCommand command)
+                }
+                interface SupplierReviewQueryService {
+                    + List<SupplierReview> handle(GetReviewsBySupplierIdQuery query)
+                    + Optional<SupplierReview> handle(GetReviewByIdQuery query)
+                    + boolean handle(CheckIfBusinessmanReviewedSupplierQuery query)
+                }
+            }
+        }
+        package application {
+            package internal {
+                package commandservices {
+                    class SupplierReviewCommandServiceImpl {
+                        - SupplierReviewRepository supplierReviewRepository
+                        + Optional<SupplierReview> handle(CreateSupplierReviewCommand command)
+                        + Optional<SupplierReview> handle(UpdateSupplierReviewCommand command)
+                    }
+                }
+                package queryservices {
+                    class SupplierReviewQueryServiceImpl {
+                        - SupplierReviewRepository supplierReviewRepository
+                        + List<SupplierReview> handle(GetReviewsBySupplierIdQuery query)
+                        + Optional<SupplierReview> handle(GetReviewByIdQuery query)
+                        + boolean handle(CheckIfBusinessmanReviewedSupplierQuery query)
+                    }
+                }
+            }
+            package outboundservices {
+                package acl {
+                    class ExternalProfilesService {
+                        - ProfilesContextFacade profilesContextFacade
+                        + Optional<Long> getBusinessmanProfileId(Long userId)
+                        + Optional<Long> getSupplierProfileId(Long userId)
+                        + boolean hasBusinessmanProfile(Long userId)
+                        + boolean hasSupplierProfile(Long userId)
+                        + Optional<String> getCompanyNameByUserId(Long userId)
+                        + boolean isValidBusinessmanId(Long businessmanId)
+                        + boolean isValidSupplierId(Long supplierId)
+                    }
+                }
+            }
+        }
+        package infrastructure {
+            package persistence {
+                package repositories {
+                    interface SupplierReviewRepository {
+                        + List<SupplierReview> findBySupplierId(SupplierId supplierId)
+                        + Optional<SupplierReview> findBySupplierIdAndBusinessmanId(SupplierId, BusinessmanId)
+                        + boolean existsBySupplierIdAndBusinessmanId(SupplierId, BusinessmanId)
+                        + long countBySupplierId(SupplierId supplierId)
+                        + List<SupplierReview> findByBusinessmanId(BusinessmanId businessmanId)
+                        + Optional<SupplierReview> findById(Long id)
+                        + SupplierReview save(SupplierReview review)
+                    }
+                }
+            }
+        }
+        package interfaces {
+            package rest {
+                class SupplierReviewsController {
+                    - SupplierReviewCommandService supplierReviewCommandService
+                    - SupplierReviewQueryService supplierReviewQueryService
+                    + ResponseEntity<SupplierReviewResource> createSupplierReview(CreateSupplierReviewResource)
+                    + ResponseEntity<List<SupplierReviewResource>> getReviewsBySupplier(Long supplierId)
+                    + ResponseEntity<Boolean> checkIfBusinessmanReviewedSupplier(Long, Long)
+                    + ResponseEntity<SupplierReviewResource> updateSupplierReview(Long, UpdateSupplierReviewResource)
+                }
+                package resources {
+                    class CreateSupplierReviewResource <<Resource>> {
+                        - Long supplierId
+                        - Long businessmanId
+                        - Integer rating
+                        - String reviewContent
+                    }
+                    class UpdateSupplierReviewResource <<Resource>> {
+                        - Integer rating
+                        - String reviewContent
+                    }
+                    class SupplierReviewResource <<Resource>> {
+                        - Long id
+                        - Long supplierId
+                        - Long businessmanId
+                        - Integer rating
+                        - String reviewContent
+                        - Date createdAt
+                        - Date updatedAt
+                    }
+                }
+            }
+        }
+    }
+
+    ' --- BOUNDED CONTEXT: OBSERVATIONS ---
+    package observations {
+        package domain {
+            package model {
+                package aggregates {
+                    class Observation <<AggregateRoot>> {
+                        - Long batchId
+                        - BatchCode batchCode
+                        - Long businessmanId
+                        - Long supplierId
+                        - String reason
+                        - ImageUrl imageUrl
+                        - ObservationStatus status
+                        + updateInformation(UpdateObservationCommand command)
+                        + getBatchCodeValue(): String
+                        + getImageUrlValue(): String
+                        + getStatusValue(): String
+                    }
+                }
+                package commands {
+                    class CreateObservationCommand <<record>> {
+                        - Long batchId
+                        - String batchCode
+                        - Long businessmanId
+                        - Long supplierId
+                        - String reason
+                        - String imageUrl
+                        - String status
+                    }
+                    class UpdateObservationCommand <<record>> {
+                        - Long observationId
+                        - String reason
+                        - String imageUrl
+                        - String status
+                    }
+                    class DeleteObservationCommand <<record>> {
+                        - Long observationId
+                    }
+                }
+                package queries {
+                    class GetObservationByIdQuery <<record>> {
+                        - Long observationId
+                    }
+                    class GetObservationsByBatchIdQuery <<record>> {
+                        - Long batchId
+                    }
+                    class GetObservationsByBusinessmanIdQuery <<record>> {
+                        - Long businessmanId
+                    }
+                    class GetObservationsBySupplierIdQuery <<record>> {
+                        - Long supplierId
+                    }
+                }
+                package valueobjects {
+                    class BatchCode <<ValueObject>> {
+                        - String code
+                        + BatchCode(String code)
+                        + getCode(): String
+                    }
+                    class ImageUrl <<ValueObject>> {
+                        - String url
+                        + ImageUrl(String url)
+                        + isEmpty(): boolean
+                        + getUrl(): String
+                    }
+                    enum ObservationStatus {
+                        PENDIENTE
+                        EN_REVISION
+                        RESUELTA
+                        RECHAZADA
+                    }
+                }
+            }
+            package services {
+                interface ObservationCommandService {
+                    + Optional<Observation> handle(CreateObservationCommand command)
+                    + Optional<Observation> handle(UpdateObservationCommand command)
+                    + void handle(DeleteObservationCommand command)
+                }
+                interface ObservationQueryService {
+                    + Optional<Observation> handle(GetObservationByIdQuery query)
+                    + List<Observation> handle(GetObservationsByBatchIdQuery query)
+                    + List<Observation> handle(GetObservationsByBusinessmanIdQuery query)
+                    + List<Observation> handle(GetObservationsBySupplierIdQuery query)
+                }
+            }
+        }
+        package application {
+            package internal {
+                package commandservices {
+                    class ObservationCommandServiceImpl {
+                        - ObservationRepository observationRepository
+                        - ApplicationEventPublisher eventPublisher
+                        + Optional<Observation> handle(CreateObservationCommand command)
+                        + Optional<Observation> handle(UpdateObservationCommand command)
+                        + void handle(DeleteObservationCommand command)
+                    }
+                }
+                package queryservices {
+                    class ObservationQueryServiceImpl {
+                        - ObservationRepository observationRepository
+                        + Optional<Observation> handle(GetObservationByIdQuery query)
+                        + List<Observation> handle(GetObservationsByBatchIdQuery query)
+                        + List<Observation> handle(GetObservationsByBusinessmanIdQuery query)
+                        + List<Observation> handle(GetObservationsBySupplierIdQuery query)
+                    }
+                }
+            }
+        }
+        package infrastructure {
+            package persistence {
+                package jpa {
+                    package repositories {
+                        interface ObservationRepository {
+                            + Optional<Observation> findById(Long id)
+                            + List<Observation> findByBatchId(Long batchId)
+                            + List<Observation> findByBusinessmanId(Long businessmanId)
+                            + List<Observation> findBySupplierId(Long supplierId)
+                            + Observation save(Observation observation)
+                            + void deleteById(Long observationId)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ' --- SHARED KERNEL ---
+    package shared {
+        package application {
+            package services {
+                interface CloudinaryService {
+                    + String uploadImage(MultipartFile file, String folder)
+                    + String uploadImage(MultipartFile file, String folder, String publicId)
+                    + boolean deleteImage(String publicId)
+                    + String extractPublicId(String imageUrl)
+                }
+                interface EmailService {
+                    + void sendWelcomeEmail(String toEmail, String userName, String userRole)
+                }
+            }
+        }
+        package domain {
+            package model {
+                package aggregates {
+                    abstract class AuditableAbstractAggregateRoot {
+                        - Long id
+                        - Date createdAt
+                        - Date updatedAt
+                        + addDomainEvent(Object event)
+                    }
+                }
+                package entities {
+                    abstract class AuditableModel {
+                        - Long id
+                        - Date createdAt
+                        - Date updatedAt
+                    }
+                }
+            }
+        }
+        package infrastructure {
+            package documentation {
+                package openapi {
+                    package configuration {
+                        class OpenApiConfiguration {
+                            - String applicationName
+                            - String applicationDescription
+                            - String applicationVersion
+                            + OpenAPI textilFlowPlatformOpenApi()
+                        }
+                    }
+                }
+            }
+            package external {
+                package cloudinary {
+                    class CloudinaryServiceImpl {
+                        - Cloudinary cloudinary
+                        + String uploadImage(MultipartFile file, String folder)
+                        + String uploadImage(MultipartFile file, String folder, String publicId)
+                        + boolean deleteImage(String publicId)
+                        + String extractPublicId(String imageUrl)
+                    }
+                }
+                package email {
+                    class EmailServiceImpl {
+                        - JavaMailSender mailSender
+                        - String fromEmail
+                        + void sendWelcomeEmail(String toEmail, String userName, String userRole)
+                        - String buildWelcomeEmailTemplate(String, String, String, String)
+                    }
+                }
+            }
+            package persistence {
+                package flyway {
+                    class FlywayConfiguration {
+                        + FlywayConfiguration(DataSource dataSource)
+                    }
+                }
+                package jpa {
+                    package configuration {
+                        package strategy {
+                            class SnakeCasePhysicalNamingStrategy {
+                                + Identifier toPhysicalCatalogName(Identifier, JdbcEnvironment)
+                                + Identifier toPhysicalSchemaName(Identifier, JdbcEnvironment)
+                                + Identifier toPhysicalTableName(Identifier, JdbcEnvironment)
+                                + Identifier toPhysicalSequenceName(Identifier, JdbcEnvironment)
+                                + Identifier toPhysicalColumnName(Identifier, JdbcEnvironment)
+                                - Identifier toSnakeCase(Identifier identifier)
+                                - Identifier toPlural(Identifier identifier)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        package interfaces {
+            package rest {
+                package resources {
+                    class MessageResource <<Resource>> {
+                        - String message
+                    }
+                    class UploadResource <<Resource>> {
+                    }
+                }
+            }
+        }
+    }
+}
+
+' --- RELACIONES IAM ---
+User --|> AuditableAbstractAggregateRoot
+User --> Roles
+User ..> SignUpCommand : "creates"
+User ..> SignInCommand : "creates"
+UserCommandServiceImpl ..|> UserCommandService
+UserCommandServiceImpl --> UserRepository
+UserCommandServiceImpl --> HashingService
+UserCommandServiceImpl --> TokenService
+UserQueryServiceImpl ..|> UserQueryService
+UserQueryServiceImpl --> UserRepository
+
+' --- RELACIONES BATCHES ---
+Batch --|> AuditableAbstractAggregateRoot
+Batch --> BatchStatus
+Batch ..> CreateBatchCommand : "creates"
+Batch ..> UpdateBatchCommand : "updates"
+BatchCommandServiceImpl ..|> BatchCommandService
+BatchCommandServiceImpl --> BatchRepository
+BatchCommandServiceImpl --> ProfilesContextFacade
+BatchQueryServiceImpl ..|> BatchQueryService
+BatchQueryServiceImpl --> BatchRepository
+
+' --- RELACIONES PROFILES ---
+Businessman --> CompanyName
+Businessman --> Ruc
+Businessman --> BusinessType
+Businessman --> LogoUrl
+Businessman ..> CreateBusinessmanCommand : "creates"
+Businessman ..> UpdateBusinessmanCommand : "updates"
+
+Supplier --> CompanyName
+Supplier --> Ruc
+Supplier --> Specialization
+Supplier --> LogoUrl
+Supplier ..> CreateSupplierCommand : "creates"
+Supplier ..> UpdateSupplierCommand : "updates"
+
+BusinessmanCommandServiceImpl ..|> BusinessmanCommandService
+BusinessmanCommandServiceImpl --> BusinessmanRepository
+BusinessmanQueryServiceImpl ..|> BusinessmanQueryService
+BusinessmanQueryServiceImpl --> BusinessmanRepository
+
+SupplierCommandServiceImpl ..|> SupplierCommandService
+SupplierCommandServiceImpl --> SupplierRepository
+SupplierQueryServiceImpl ..|> SupplierQueryService
+SupplierQueryServiceImpl --> SupplierRepository
+
+' --- RELACIONES REVIEWS ---
+SupplierReview --|> AuditableAbstractAggregateRoot
+SupplierReview --> SupplierId
+SupplierReview --> BusinessmanId
+SupplierReview --> Rating
+SupplierReview --> ReviewContent
+SupplierReview ..> CreateSupplierReviewCommand : "creates"
+SupplierReview ..> UpdateSupplierReviewCommand : "updates"
+SupplierReview ..> ReviewCreatedEvent : "publishes"
+SupplierReview ..> ReviewUpdatedEvent : "publishes"
+
+SupplierReviewCommandServiceImpl ..|> SupplierReviewCommandService
+SupplierReviewCommandServiceImpl --> SupplierReviewRepository
+SupplierReviewQueryServiceImpl ..|> SupplierReviewQueryService
+SupplierReviewQueryServiceImpl --> SupplierReviewRepository
+
+ExternalProfilesService --> ProfilesContextFacade
+SupplierReviewsController --> SupplierReviewCommandService
+SupplierReviewsController --> SupplierReviewQueryService
+
+' --- RELACIONES OBSERVATIONS ---
+Observation --|> AuditableAbstractAggregateRoot
+Observation --> BatchCode
+Observation --> ImageUrl
+Observation --> ObservationStatus
+Observation ..> CreateObservationCommand : "creates"
+Observation ..> UpdateObservationCommand : "updates"
+
+ObservationCommandServiceImpl ..|> ObservationCommandService
+ObservationCommandServiceImpl --> ObservationRepository
+ObservationQueryServiceImpl ..|> ObservationQueryService
+ObservationQueryServiceImpl --> ObservationRepository
+
+' --- RELACIONES SHARED ---
+CloudinaryServiceImpl ..|> CloudinaryService
+EmailServiceImpl ..|> EmailService
+SnakeCasePhysicalNamingStrategy ..|> PhysicalNamingStrategy
+
+' --- RELACIONES ENTRE CONTEXTOS ---
+BatchCommandServiceImpl --> ProfilesContextFacade
+ExternalProfilesService --> ProfilesContextFacade
+
+' --- USO DEL SHARED KERNEL ---
+UserCommandServiceImpl --> EmailService
+BusinessmanCommandServiceImpl --> CloudinaryService
+SupplierCommandServiceImpl --> CloudinaryService
+
+@enduml

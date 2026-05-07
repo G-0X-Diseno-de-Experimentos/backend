@@ -1,0 +1,99 @@
+name: Deploy TextilFlow to AWS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            # Crear swap si no existe (optimización para Java 24)
+            if [ ! -f /swapfile ]; then
+              echo "Creating swap file for Java 24 optimization..."
+              sudo fallocate -l 2G /swapfile
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+              echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+              echo "Swap created successfully"
+            else
+              echo "Swap already exists"
+            fi
+            
+            # Verificar memoria disponible
+            echo "Memory status:"
+            free -h
+            
+            cd /home/ec2-user/textilflow
+            
+            # FORZAR git pull (resolver conflictos automáticamente)
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Verificar que tenemos la versión más reciente
+            echo "Current commit:"
+            git log --oneline -1
+            
+            # Crear archivo .env con variables externas
+            cat > .env << EOF
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            EMAIL_USERNAME=${{ secrets.EMAIL_USERNAME }}
+            EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            EOF
+            
+            # Parar containers existentes
+            docker-compose down
+            
+            # LIMPIAR TODO EL CACHE DE DOCKER (crítico)
+            docker system prune -f
+            docker builder prune -f
+            docker image prune -f
+            
+            # Construir SIN CACHE para asegurar código fresco
+            echo "Building with fresh code (no cache)..."
+            docker-compose build --no-cache textilflow-backend
+            
+            # Levantar containers
+            echo "Starting containers..."
+            docker-compose up -d
+            
+            # Esperar que los servicios inicien
+            echo "Waiting for services to start..."
+            sleep 30
+            
+            # Verificar estado de containers
+            echo "Container status:"
+            docker ps
+            
+            # Mostrar logs recientes
+            echo "Recent logs:"
+            docker-compose logs --tail=20
+            
+            # Verificar que el backend responda
+            echo "Testing backend health:"
+            for i in {1..10}; do
+              if curl -f http://localhost:5001/actuator/health 2>/dev/null; then
+                echo "✅ Backend is healthy!"
+                break
+              else
+                echo "⏳ Waiting for backend... attempt $i/10"
+                sleep 10
+              fi
+            done
