@@ -269,7 +269,6 @@
 
                     <!-- Exclusions (igual que tu ejemplo) -->
                     <excludes>
-                        <exclude>com/textilflow/platform/**/domain/**</exclude>
                         <exclude>com/textilflow/platform/**/infrastructure/**</exclude>
                         <exclude>com/textilflow/platform/**/interfaces/**</exclude>
                         <exclude>com/textilflow/platform/**/application/**/config/**</exclude>
