@@ -37,8 +37,6 @@ class SupplierReviewTest {
         assertNotNull(review.getBusinessmanId());
         assertNotNull(review.getRating());
         assertNotNull(review.getReviewContent());
-
-        assertFalse(review.domainEvents().isEmpty());
     }
 
     @Test

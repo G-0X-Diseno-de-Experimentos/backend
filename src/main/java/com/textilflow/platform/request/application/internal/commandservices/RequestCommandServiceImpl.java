@@ -31,8 +31,8 @@ public class RequestCommandServiceImpl implements RequestCommandService {
                 command.message(), batchType,
                 color, quantity, address);
 
-        requestRepository.save(request);
-        return request.getId();
+        var saved = requestRepository.save(request);
+        return saved.getId();
     }
 
     @Override

@@ -51,7 +51,7 @@ class ObservationDomainContractsTest {
     void updateInformation_ShouldModifyFields() {
         // Arrange
         Observation observation = new Observation(10L, new BatchCode("B001"), 100L, 200L, "Vieja razón", null, ObservationStatus.PENDIENTE);
-        var command = new UpdateObservationCommand(1L, "Nueva razón", "RESUELTA", "http://new/img.jpg");
+        var command = new UpdateObservationCommand(1L, "Nueva razón", "http://new/img.jpg", "RESUELTA");
 
         // Act
         observation.updateInformation(command);

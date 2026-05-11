@@ -34,28 +34,19 @@ public class ReviewCreatedEventHandler {
      */
     @EventListener
     public void on(ReviewCreatedEvent event) {
-        logger.info("Processing ReviewCreatedEvent for review ID: {}, supplier ID: {}, businessman ID: {}, rating: {}",
-                event.getReviewId(),
-                event.getSupplierIdValue(),
-                event.getBusinessmanIdValue(),
-                event.getRatingValue());
 
         try {
-            // TODO: Aquí se podría integrar con el contexto profiles para:
-            // 1. Actualizar el rating promedio del supplier
-            // 2. Incrementar el contador de reseñas totales
-            // 3. Notificar al supplier sobre la nueva reseña
-
-            // Ejemplo de lo que se podría hacer:
-            // updateSupplierAverageRating(event.getSupplierIdValue());
-            // sendNotificationToSupplier(event.getSupplierIdValue(), event.getBusinessmanIdValue());
+            logger.info("Processing ReviewCreatedEvent for review ID: {}, supplier ID: {}, businessman ID: {}, rating: {}",
+                    event.getReviewId(),
+                    event.getSupplierIdValue(),
+                    event.getBusinessmanIdValue(),
+                    event.getRatingValue()
+            );
 
             logger.info("Successfully processed ReviewCreatedEvent for review ID: {}", event.getReviewId());
 
         } catch (Exception e) {
-            logger.error("Error processing ReviewCreatedEvent for review ID: {}: {}",
-                    event.getReviewId(), e.getMessage(), e);
-            // En un sistema real, aquí podrías implementar retry logic o dead letter queue
+            logger.error("Error processing ReviewCreatedEvent: {}", e.getMessage(), e);
         }
     }
 

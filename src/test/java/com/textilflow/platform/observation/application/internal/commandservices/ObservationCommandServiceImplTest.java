@@ -2,6 +2,8 @@ package com.textilflow.platform.observation.application.internal.commandservices
 
 import com.textilflow.platform.observation.domain.model.aggregates.Observation;
 import com.textilflow.platform.observation.domain.model.commands.*;
+import com.textilflow.platform.observation.domain.model.valueobjects.BatchCode;
+import com.textilflow.platform.observation.domain.model.valueobjects.ImageUrl;
 import com.textilflow.platform.observation.domain.model.valueobjects.ObservationStatus;
 import com.textilflow.platform.observation.domain.services.ObservationImageService;
 import com.textilflow.platform.observation.infrastructure.persistence.jpa.repositories.ObservationRepository;
@@ -51,7 +53,7 @@ class ObservationCommandServiceImplTest {
     @DisplayName("handle(UpdateObservationCommand) debe retornar Optional vacío si no existe (AAA)")
     void handle_UpdateObservation_ShouldReturnEmpty_WhenNotFound() {
         // Arrange
-        var command = new UpdateObservationCommand(1L, "Nueva razón", "EN_REVISION", "http://cloud.url/new.jpg");
+        var command = new UpdateObservationCommand(1L, "Nueva razón", "http://cloud.url/new.jpg", "EN_REVISION");
         when(observationRepository.findById(1L)).thenReturn(Optional.empty());
 
         // Act
@@ -67,7 +69,7 @@ class ObservationCommandServiceImplTest {
     @DisplayName("handle(UpdateObservationCommand) debe actualizar y guardar si existe (AAA)")
     void handle_UpdateObservation_ShouldUpdate_WhenFound() {
         // Arrange
-        var command = new UpdateObservationCommand(1L, "Nueva razón", "EN_REVISION", "http://cloud.url/new.jpg");
+        var command = new UpdateObservationCommand(1L, "Nueva razón", "http://cloud.url/new.jpg", "EN_REVISION");
         Observation observation = spy(new Observation());
         when(observationRepository.findById(1L)).thenReturn(Optional.of(observation));
         when(observationRepository.save(observation)).thenReturn(observation);
@@ -124,10 +126,17 @@ class ObservationCommandServiceImplTest {
         // Arrange
         MultipartFile fileMock = mock(MultipartFile.class);
         var command = new UploadObservationImageCommand(1L, fileMock);
-        Observation observation = spy(new Observation());
+        Observation observation = spy( new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Razón",
+                new ImageUrl("http://old.url/img.jpg"),
+                ObservationStatus.PENDIENTE
+        ));
 
         when(observationRepository.findById(1L)).thenReturn(Optional.of(observation));
-        when(observation.getImageUrlValue()).thenReturn("http://old.url/img.jpg");
         when(observationImageService.uploadImage(1L, fileMock)).thenReturn("http://new.url/img.jpg");
         when(observationRepository.save(observation)).thenReturn(observation);
 
@@ -147,9 +156,16 @@ class ObservationCommandServiceImplTest {
     void handle_DeleteObservationImage_ShouldClearField() {
         // Arrange
         var command = new DeleteObservationImageCommand(1L);
-        Observation observation = spy(new Observation());
+        Observation observation = spy(new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Razón",
+                new ImageUrl("http://cloud.url/img.jpg"),
+                ObservationStatus.PENDIENTE
+        ));
         when(observationRepository.findById(1L)).thenReturn(Optional.of(observation));
-        when(observation.getImageUrlValue()).thenReturn("http://cloud.url/img.jpg");
         when(observationRepository.save(observation)).thenReturn(observation);
 
         // Act
