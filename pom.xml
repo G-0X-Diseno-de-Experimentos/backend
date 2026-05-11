@@ -234,12 +234,14 @@
             </plugin>
 
             <!-- JACOCO (CORREGIDO - IMPORTANTE PARA JENKINS) -->
+            <!-- Jacoco Maven Plugin -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.13</version>
 
                 <executions>
+
                     <execution>
                         <goals>
                             <goal>prepare-agent</goal>
@@ -248,7 +250,7 @@
 
                     <execution>
                         <id>report</id>
-                        <phase>verify</phase>
+                        <phase>test</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -256,27 +258,39 @@
 
                     <execution>
                         <id>check</id>
-                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-                                    <limits>
-                                        <limit>
-                                            <counter>INSTRUCTION</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.80</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
                     </execution>
 
                 </executions>
+
+                <configuration>
+
+                    <!-- Exclusions (igual que tu ejemplo) -->
+                    <excludes>
+                        <exclude>com/textilflow/platform/**/domain/**</exclude>
+                        <exclude>com/textilflow/platform/**/infrastructure/**</exclude>
+                        <exclude>com/textilflow/platform/**/interfaces/rest/resources/**</exclude>
+                        <exclude>com/textilflow/platform/**/interfaces/rest/controllers/**</exclude>
+                        <exclude>**/*Application*</exclude>
+                    </excludes>
+
+                    <!-- Rules -->
+                    <rules>
+                        <rule>
+                            <element>BUNDLE</element>
+                            <limits>
+                                <limit>
+                                    <counter>INSTRUCTION</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.80</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+
+                </configuration>
             </plugin>
 
             <!-- SPRING BOOT -->

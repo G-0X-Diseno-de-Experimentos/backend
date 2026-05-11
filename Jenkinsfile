@@ -35,7 +35,7 @@ pipeline {
     stage('Validate Test Coverage') {
       steps {
         withMaven(maven: 'MAVEN_3_9_11') {
-          bat 'mvn verify jacoco:report'
+          bat 'mvn clean verify jacoco:report'
           bat 'mvn jacoco:check'
         }
       }
