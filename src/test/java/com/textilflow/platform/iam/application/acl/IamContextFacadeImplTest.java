@@ -126,4 +126,99 @@ class IamContextFacadeImplTest {
         verify(userCommandService).handle(any(UpdateUserDataCommand.class));
         verifyNoMoreInteractions(userCommandService);
     }
+
+    @Test
+    @DisplayName("getUserIdByEmail debe retornar null si el usuario no existe (AAA)")
+    void getUserIdByEmail_ShouldReturnNull_WhenNotFound() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByEmailQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        Long result = facade.getUserIdByEmail("missing@mail.com");
+
+        // Assert
+        assertNull(result);
+        verify(userQueryService).handle(any(GetUserByEmailQuery.class));
+    }
+
+    @Test
+    @DisplayName("userExists debe retornar false si el usuario no existe (AAA)")
+    void userExists_ShouldReturnFalse_WhenNotFound() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByIdQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        boolean result = facade.userExists(999L);
+
+        // Assert
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("getUserRole debe retornar null si el usuario no existe (AAA)")
+    void getUserRole_ShouldReturnNull_WhenNotFound() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByIdQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        String role = facade.getUserRole(999L);
+
+        // Assert
+        assertNull(role);
+    }
+
+    @Test
+    @DisplayName("userExists debe manejar userId null sin romper (AAA)")
+    void userExists_ShouldHandleNullUserId() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByIdQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        boolean result = facade.userExists(null);
+
+        // Assert
+        assertFalse(result);
+    }
+    @Test
+    @DisplayName("getUserRole debe manejar userId null sin romper (AAA)")
+    void getUserRole_ShouldHandleNullUserId() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByIdQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        String role = facade.getUserRole(null);
+
+        // Assert
+        assertNull(role);
+    }
+
+    @Test
+    @DisplayName("getUserIdByEmail debe manejar email null sin romper (AAA)")
+    void getUserIdByEmail_ShouldHandleNullEmail() {
+        // Arrange
+        when(userQueryService.handle(any(GetUserByEmailQuery.class)))
+                .thenReturn(Optional.empty());
+
+        // Act
+        Long result = facade.getUserIdByEmail(null);
+
+        // Assert
+        assertNull(result);
+    }
+    @Test
+    @DisplayName("updateUserData debe delegar incluso con valores null (AAA)")
+    void updateUserData_ShouldDelegateEvenWithNullValues() {
+        // Arrange & Act
+        facade.updateUserData(1L, null, null, null, null, null, null);
+
+        // Assert
+        verify(userCommandService).handle(any(UpdateUserDataCommand.class));
+    }
+
+
 }
