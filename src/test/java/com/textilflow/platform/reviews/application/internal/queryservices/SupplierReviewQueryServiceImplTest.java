@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -83,5 +84,32 @@ class SupplierReviewQueryServiceImplTest {
         // Assert
         assertTrue(result);
         verify(supplierReviewRepository).existsBySupplierIdAndBusinessmanId(new SupplierId(10L), new BusinessmanId(20L));
+    }
+
+    @Test
+    @DisplayName("handle(GetReviewsBySupplierIdQuery) debe retornar lista vacía si supplierId es inválido")
+    void shouldThrow_WhenSupplierIdInvalid() {
+     // Arrange
+        var query = mock(GetReviewsBySupplierIdQuery.class);
+        when(query.supplierId()).thenReturn(0L);
+     // Act & Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> service.handle(query));
+    }
+
+    @Test
+    @DisplayName("handle(GetReviewByIdQuery) debe propagar excepción si repository falla")
+    void shouldThrow_WhenRepositoryFails() {
+
+        // Arrange
+        var query = mock(GetReviewByIdQuery.class);
+        when(query.reviewId()).thenReturn(1L);
+
+        when(supplierReviewRepository.findById(1L))
+                .thenThrow(new RuntimeException("DB error"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(query));
     }
 }

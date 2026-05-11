@@ -132,4 +132,105 @@ class RequestCommandServiceImplTest {
         verify(requestRepository).deleteById(1L);
         verifyNoMoreInteractions(requestRepository);
     }
+
+    @Test
+    @DisplayName("handle UpdateRequestDetails debe retornar empty si no existe")
+    void shouldReturnEmpty_WhenUpdateDetailsNotFound() {
+
+        // Arrange
+        var command = mock(UpdateRequestDetailsCommand.class);
+        when(command.requestId()).thenReturn(99L);
+        when(requestRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("handle(CreateBusinessSupplierRequestCommand) debe fallar si repository retorna null (caso crítico)")
+    void shouldThrow_WhenRepositoryReturnsNull() {
+
+        // Arrange
+        var command = mock(CreateBusinessSupplierRequestCommand.class);
+        when(command.businessmanId()).thenReturn(10L);
+        when(command.supplierId()).thenReturn(20L);
+        when(command.batchType()).thenReturn("COTTON");
+        when(command.color()).thenReturn("BLUE");
+        when(command.quantity()).thenReturn(100);
+        when(command.address()).thenReturn("Av. Principal");
+        when(command.message()).thenReturn("Test");
+
+        when(requestRepository.save(any())).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(NullPointerException.class,
+                () -> service.handle(command));
+    }
+
+    @Test
+    @DisplayName("handle(UpdateRequestStatusCommand) debe actualizar estado correctamente")
+    void shouldUpdateStatusCorrectly() {
+
+        // Arrange
+        var command = mock(UpdateRequestStatusCommand.class);
+        when(command.requestId()).thenReturn(1L);
+        when(command.status()).thenReturn(RequestStatus.ACCEPTED);
+        when(command.message()).thenReturn("msg");
+
+        var request = spy(new BusinessSupplierRequest());
+
+        when(requestRepository.findById(1L))
+                .thenReturn(Optional.of(request));
+
+        when(requestRepository.save(request))
+                .thenReturn(request);
+
+        // Act
+        service.handle(command);
+
+        // Assert
+        verify(request).updateStatus(RequestStatus.ACCEPTED, "msg");
+    }
+
+    @Test
+    @DisplayName("handle(UpdateRequestDetailsCommand) debe actualizar detalles cuando request existe")
+    void shouldUpdateRequestDetailsCorrectly() {
+
+        // Arrange
+        var command = mock(UpdateRequestDetailsCommand.class);
+
+        when(command.requestId()).thenReturn(1L);
+        when(command.batchType()).thenReturn("SILK");
+        when(command.color()).thenReturn("RED");
+        when(command.quantity()).thenReturn(200);
+        when(command.address()).thenReturn("Av. Central");
+        when(command.message()).thenReturn("msg");
+
+        var request = spy(new BusinessSupplierRequest());
+
+        when(requestRepository.findById(1L))
+                .thenReturn(Optional.of(request));
+
+        when(requestRepository.save(request))
+                .thenReturn(request);
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isPresent());
+
+        verify(request).updateRequestDetails(
+                eq("msg"),
+                any(BatchType.class),
+                any(Color.class),
+                any(Quantity.class),
+                any(Address.class)
+        );
+
+        verify(requestRepository).save(request);
+    }
 }

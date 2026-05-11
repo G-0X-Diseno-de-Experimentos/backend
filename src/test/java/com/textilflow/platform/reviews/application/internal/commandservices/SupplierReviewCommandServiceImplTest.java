@@ -129,4 +129,65 @@ class SupplierReviewCommandServiceImplTest {
         verify(existingReview).update(command);
         verify(supplierReviewRepository).save(existingReview);
     }
+
+    @Test
+    @DisplayName("handle(CreateSupplierReviewCommand) debe lanzar RuntimeException si falla el repository")
+    void shouldThrow_WhenRepositoryFails() {
+
+        // Arrange
+        var command = mock(CreateSupplierReviewCommand.class);
+        when(command.supplierId()).thenReturn(10L);
+        when(command.businessmanId()).thenReturn(20L);
+        when(command.rating()).thenReturn(5);
+        when(command.reviewContent()).thenReturn("Test");
+
+        when(supplierReviewRepository.existsBySupplierIdAndBusinessmanId(any(), any()))
+                .thenReturn(false);
+
+        when(supplierReviewRepository.save(any(SupplierReview.class)))
+                .thenThrow(new RuntimeException("DB error"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+    }
+
+    @Test
+    @DisplayName("handle(UpdateSupplierReviewCommand) debe lanzar RuntimeException si falla el save")
+    void shouldThrow_WhenUpdateSaveFails() {
+
+        // Arrange
+        var command = mock(UpdateSupplierReviewCommand.class);
+        when(command.reviewId()).thenReturn(1L);
+        when(command.rating()).thenReturn(4);
+        when(command.reviewContent()).thenReturn("Updated");
+
+        SupplierReview review = spy(new SupplierReview(10L, 20L, 3, "Old"));
+
+        when(supplierReviewRepository.findById(1L))
+                .thenReturn(Optional.of(review));
+
+        when(supplierReviewRepository.save(review))
+                .thenThrow(new RuntimeException("DB error"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+    }
+
+    @Test
+    @DisplayName("handle(UpdateSupplierReviewCommand) debe lanzar excepción si review no existe")
+    void shouldThrow_WhenUpdateReviewNotFound() {
+
+        // Arrange
+        var command = mock(UpdateSupplierReviewCommand.class);
+        when(command.reviewId()).thenReturn(999L);
+
+        when(supplierReviewRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> service.handle(command));
+    }
 }

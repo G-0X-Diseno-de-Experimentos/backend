@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -97,5 +98,75 @@ class RequestQueryServiceImplTest {
         assertEquals(2, result.size());
         verify(requestRepository).findAllOrderByCreatedAtDesc();
         verifyNoMoreInteractions(requestRepository);
+    }
+
+    @Test
+    @DisplayName("handle GetAllRequests debe retornar lista vacía correctamente")
+    void shouldReturnEmptyList_WhenNoRequests() {
+
+        // Arrange
+        when(requestRepository.findAllOrderByCreatedAtDesc())
+                .thenReturn(Collections.emptyList());
+
+        var query = new GetAllRequestsQuery();
+
+        // Act
+        var result = service.handle(query);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("handle(GetRequestsByBusinessmanIdQuery) debe retornar lista vacía cuando no hay datos")
+    void shouldReturnEmptyList_WhenNoBusinessmanRequests() {
+
+        // Arrange
+        when(requestRepository.findByBusinessmanId(anyLong()))
+                .thenReturn(Collections.emptyList());
+
+        var query = new GetRequestsByBusinessmanIdQuery(10L);
+
+        // Act
+        var result = service.handle(query);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(requestRepository).findByBusinessmanId(anyLong());
+    }
+
+    @Test
+    @DisplayName("handle(GetRequestsBySupplierIdQuery) debe retornar lista vacía cuando no hay datos")
+    void shouldReturnEmptyList_WhenNoSupplierRequests() {
+
+        // Arrange
+        when(requestRepository.findBySupplierId(anyLong()))
+                .thenReturn(Collections.emptyList());
+
+        var query = new GetRequestsBySupplierIdQuery(20L);
+
+        // Act
+        var result = service.handle(query);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(requestRepository).findBySupplierId(anyLong());
+    }
+
+    @Test
+    @DisplayName("handle(GetRequestByIdQuery) debe retornar empty si ID no existe")
+    void shouldReturnEmpty_WhenNotFound() {
+
+        // Arrange
+        when(requestRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        var query = new GetRequestByIdQuery(99L);
+
+        // Act
+        var result = service.handle(query);
+
+        // Assert
+        assertTrue(result.isEmpty());
     }
 }

@@ -305,4 +305,9 @@ class BatchCommandServiceImplTest {
         verify(batchRepository).findById(1L);
         verifyNoMoreInteractions(batchRepository);
     }
+
+
+
+
+
 }

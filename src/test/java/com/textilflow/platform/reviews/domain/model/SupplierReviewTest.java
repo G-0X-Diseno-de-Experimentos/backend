@@ -83,4 +83,13 @@ class SupplierReviewTest {
         assertTrue(review.isForSupplier(new SupplierId(10L)));
         assertFalse(review.isForSupplier(new SupplierId(99L)));
     }
+
+    @Test
+    @DisplayName("debe fallar si rating es inválido")
+    void shouldThrow_WhenInvalidRating() {
+
+        assertThrows(Exception.class,
+                () -> new SupplierReview(10L, 20L, -1, "Bad"));
+    }
+
 }

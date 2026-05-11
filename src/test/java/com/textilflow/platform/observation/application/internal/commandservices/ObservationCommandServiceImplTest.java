@@ -178,4 +178,204 @@ class ObservationCommandServiceImplTest {
         verify(observation).deleteImage();
         verify(observationRepository).save(observation);
     }
+
+    @Test
+    @DisplayName("handle(CreateObservationCommand) should throw when status is invalid (AAA)")
+    void handle_CreateObservation_ShouldThrow_WhenStatusInvalid() {
+        // Arrange
+        var command = new CreateObservationCommand(
+                10L, "B001", 100L, 200L,
+                "Falla", "url", "INVALID_STATUS"
+        );
+
+        // Act + Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> service.handle(command));
+
+        verifyNoInteractions(observationRepository, observationImageService);
+    }
+
+    @Test
+    @DisplayName("handle(DeleteObservationCommand) should do nothing when not found (AAA)")
+    void handle_DeleteObservation_ShouldDoNothing_WhenNotFound() {
+        // Arrange
+        var command = new DeleteObservationCommand(1L);
+        when(observationRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act
+        service.handle(command);
+
+        // Assert
+        verify(observationRepository).findById(1L);
+        verifyNoMoreInteractions(observationRepository);
+        verifyNoInteractions(observationImageService);
+    }
+
+    @Test
+    @DisplayName("handle(UploadObservationImageCommand) should throw when upload fails (AAA)")
+    void handle_Upload_ShouldThrow_WhenImageServiceFails() {
+        // Arrange
+        var file = mock(MultipartFile.class);
+        var command = new UploadObservationImageCommand(1L, file);
+
+        Observation obs = mock(Observation.class);
+
+        when(observationRepository.findById(1L)).thenReturn(Optional.of(obs));
+        when(observationImageService.uploadImage(1L, file))
+                .thenThrow(new RuntimeException("cloud error"));
+
+        // Act + Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+
+        verify(observationImageService).uploadImage(1L, file);
+    }
+
+    @Test
+    @DisplayName("handle(UploadObservationImageCommand) should return empty when observation not found (AAA)")
+    void handle_Upload_ShouldReturnEmpty_WhenNotFound() {
+        // Arrange
+        var file = mock(MultipartFile.class);
+        var command = new UploadObservationImageCommand(1L, file);
+
+        when(observationRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(observationRepository).findById(1L);
+        verifyNoInteractions(observationImageService);
+    }
+
+    @Test
+    @DisplayName("handle(DeleteObservationImageCommand) should return empty when not found (AAA)")
+    void handle_DeleteObservationImage_ShouldReturnEmpty_WhenNotFound() {
+        // Arrange
+        var command = new DeleteObservationImageCommand(1L);
+
+        when(observationRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(observationRepository).findById(1L);
+        verifyNoInteractions(observationImageService);
+    }
+
+    @Test
+    @DisplayName("handle(CreateObservationCommand) should handle null imageUrl (AAA)")
+    void handle_CreateObservation_ShouldHandleNullImageUrl() {
+        // Arrange
+        var command = new CreateObservationCommand(
+                10L, "B001", 100L, 200L,
+                "Falla", null, "PENDIENTE"
+        );
+
+        when(observationRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isPresent());
+        verify(observationRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("deleteImage debe establecer imageUrl en null (AAA)")
+    void deleteImage_ShouldSetImageUrlToNull() {
+        // Arrange
+        Observation observation = new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Razón",
+                new ImageUrl("http://cloud.url/img.jpg"),
+                ObservationStatus.PENDIENTE
+        );
+
+        // Act
+        observation.deleteImage();
+
+        // Assert
+        assertNull(observation.getImageUrlValue());
+    }
+
+    @Test
+    @DisplayName("updateImage debe reemplazar imageUrl correctamente (AAA)")
+    void updateImage_ShouldReplaceImageUrl() {
+        // Arrange
+        Observation observation = new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Razón",
+                new ImageUrl("http://old.url/img.jpg"),
+                ObservationStatus.PENDIENTE
+        );
+
+        // Act
+        observation.updateImage("http://new.url/img.jpg");
+
+        // Assert
+        assertEquals("http://new.url/img.jpg", observation.getImageUrlValue());
+    }
+
+    @Test
+    @DisplayName("getImageUrlValue debe retornar null cuando imageUrl es null (AAA)")
+    void getImageUrlValue_ShouldReturnNull_WhenImageIsNull() {
+        // Arrange
+        Observation observation = new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Razón",
+                null,
+                ObservationStatus.PENDIENTE
+        );
+
+        // Act
+        String result = observation.getImageUrlValue();
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("updateInformation debe normalizar status a uppercase (AAA)")
+    void updateInformation_ShouldNormalizeStatusToUpperCase() {
+        // Arrange
+        Observation observation = new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Old",
+                null,
+                ObservationStatus.PENDIENTE
+        );
+
+        var command = new UpdateObservationCommand(
+                1L,
+                "New Reason",
+                null,
+                "en_revision"
+        );
+
+        // Act
+        observation.updateInformation(command);
+
+        // Assert
+        assertEquals(ObservationStatus.EN_REVISION, observation.getStatus());
+    }
 }
