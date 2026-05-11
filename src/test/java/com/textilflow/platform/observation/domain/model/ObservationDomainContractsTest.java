@@ -88,4 +88,102 @@ class ObservationDomainContractsTest {
         assertNotNull(ObservationStatus.valueOf("RESUELTA"));
         assertNotNull(ObservationStatus.valueOf("RECHAZADA"));
     }
+
+    @Test
+    @DisplayName("updateImage debe manejar null (edge case)")
+    void updateImage_ShouldHandleNull() {
+        // Arrange
+        Observation observation = new Observation();
+
+        // Act
+        observation.updateImage(null);
+
+        // Assert
+        assertNull(observation.getImageUrlValue());
+    }
+
+    @Test
+    @DisplayName("ImageUrl isEmpty debe detectar null y vacío")
+    void imageUrl_IsEmptyEdgeCases() {
+        // Arrange
+        ImageUrl nullUrl = new ImageUrl(null);
+        ImageUrl emptyUrl = new ImageUrl("");
+        ImageUrl spacesUrl = new ImageUrl("   ");
+        ImageUrl validUrl = new ImageUrl("http://test.com");
+
+        // Assert
+        assertTrue(nullUrl.isEmpty());
+        assertTrue(emptyUrl.isEmpty());
+        assertTrue(spacesUrl.isEmpty());
+        assertFalse(validUrl.isEmpty());
+    }
+
+    @Test
+    @DisplayName("updateInformation no debe cambiar imagen si es null o vacía")
+    void updateInformation_ShouldIgnoreNullImage() {
+        // Arrange
+        Observation observation = new Observation(
+                1L,
+                new BatchCode("B001"),
+                100L,
+                200L,
+                "Reason",
+                new ImageUrl("http://old.com"),
+                ObservationStatus.PENDIENTE
+        );
+
+        var command = new UpdateObservationCommand(
+                1L,
+                "New Reason",
+                null,
+                "RESUELTA"
+        );
+
+        // Act
+        observation.updateInformation(command);
+
+        // Assert
+        assertEquals("http://old.com", observation.getImageUrlValue());
+    }
+
+    @Test
+    @DisplayName("updateInformation debe fallar si status es inválido")
+    void updateInformation_ShouldFailInvalidStatus() {
+        // Arrange
+        Observation observation = new Observation();
+
+        var command = new UpdateObservationCommand(
+                1L,
+                "Reason",
+                "http://img.com",
+                "INVALID_STATUS"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () ->
+                observation.updateInformation(command)
+        );
+    }
+
+    @Test
+    @DisplayName("Constructor debe aceptar imageUrl null pero mantener consistencia")
+    void constructor_ShouldAllowNullImageUrl() {
+        // Arrange
+        BatchCode batchCode = new BatchCode("B001");
+
+        // Act
+        Observation observation = new Observation(
+                1L,
+                batchCode,
+                100L,
+                200L,
+                "Reason",
+                null,
+                ObservationStatus.PENDIENTE
+        );
+
+        // Assert
+        assertNull(observation.getImageUrlValue());
+        assertEquals("B001", observation.getBatchCodeValue());
+    }
 }
