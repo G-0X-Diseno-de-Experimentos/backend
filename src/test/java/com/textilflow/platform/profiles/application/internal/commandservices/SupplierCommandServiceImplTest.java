@@ -162,4 +162,73 @@ class SupplierCommandServiceImplTest {
         verify(profileImageService).deleteImage("http://cloud/logo.png");
         verify(supplierRepository).save(supplier);
     }
+
+    @Test
+    @DisplayName("handle(CreateSupplierCommand) debe fallar si IAM no encuentra usuario")
+    void handle_CreateSupplier_ShouldThrow_WhenIamUserNotFound() {
+
+        // Arrange
+        var command = mock(CreateSupplierCommand.class);
+        when(command.userId()).thenReturn(200L);
+
+        when(externalIamService.userExists(200L)).thenReturn(false);
+
+        // Act + Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+
+        verifyNoInteractions(supplierRepository);
+    }
+
+    @Test
+    @DisplayName("handle(UploadLogoCommand) no debe borrar logo si no existe previo")
+    void handle_UploadLogo_ShouldNotDelete_WhenNoLogo() {
+
+        // Arrange
+        MultipartFile fileMock = mock(MultipartFile.class);
+        var command = mock(UploadLogoCommand.class);
+
+        when(command.userId()).thenReturn(200L);
+        when(command.logoFile()).thenReturn(fileMock);
+
+        Supplier supplier = spy(new Supplier(200L));
+
+        when(supplierRepository.findByUserId(200L))
+                .thenReturn(Optional.of(supplier));
+
+        when(profileImageService.uploadImage(200L, fileMock, "SUPPLIER"))
+                .thenReturn("http://cloud/logo.png");
+
+        when(supplierRepository.save(supplier)).thenReturn(supplier);
+
+        // Act
+        service.handle(command);
+
+        // Assert
+        verify(profileImageService, never()).deleteImage(anyString());
+    }
+
+    @Test
+    @DisplayName("handle(UploadLogoCommand) debe fallar si uploadImage lanza error")
+    void handle_UploadLogo_ShouldThrow_WhenUploadFails() {
+
+        // Arrange
+        MultipartFile fileMock = mock(MultipartFile.class);
+        var command = mock(UploadLogoCommand.class);
+
+        when(command.userId()).thenReturn(200L);
+        when(command.logoFile()).thenReturn(fileMock);
+
+        Supplier supplier = spy(new Supplier(200L));
+
+        when(supplierRepository.findByUserId(200L))
+                .thenReturn(Optional.of(supplier));
+
+        when(profileImageService.uploadImage(anyLong(), any(), anyString()))
+                .thenThrow(new RuntimeException("Upload failed"));
+
+        // Act + Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+    }
 }

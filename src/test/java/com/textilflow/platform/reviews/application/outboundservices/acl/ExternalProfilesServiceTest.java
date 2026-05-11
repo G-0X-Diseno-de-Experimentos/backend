@@ -103,4 +103,45 @@ class ExternalProfilesServiceTest {
         assertFalse(service.isValidSupplierId(0L));
         assertFalse(service.isValidSupplierId(null));
     }
+
+    @Test
+    @DisplayName("getBusinessmanProfileId debe retornar empty si userId es null")
+    void shouldReturnEmpty_WhenUserIdIsNull() {
+
+        // Act
+        var result = service.getBusinessmanProfileId(null);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("getCompanyNameByUserId debe retornar empty si companyName es blank")
+    void shouldReturnEmpty_WhenCompanyNameBlank() {
+
+        // Arrange
+        when(profilesContextFacade.getCompanyNameByUserId(1L))
+                .thenReturn("   ");
+
+        // Act
+        var result = service.getCompanyNameByUserId(1L);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("getSupplierProfileId debe retornar empty si supplierId es 0 o negativo")
+    void shouldReturnEmpty_WhenSupplierIdInvalid() {
+
+        // Arrange
+        when(profilesContextFacade.hasSupplierProfile(1L)).thenReturn(true);
+        when(profilesContextFacade.getSupplierByUserId(1L)).thenReturn(0L);
+
+        // Act
+        var result = service.getSupplierProfileId(1L);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
 }

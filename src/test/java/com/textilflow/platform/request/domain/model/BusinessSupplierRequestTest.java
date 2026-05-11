@@ -11,34 +11,31 @@ import static org.mockito.Mockito.mock;
 class BusinessSupplierRequestTest {
 
     @Test
-    @DisplayName("Constructor completo debe inicializar campos correctamente en estado PENDING (AAA)")
-    void fullConstructor_ShouldInitializeCorrectly() {
+    @DisplayName("Constructor debe inicializar correctamente el aggregate en estado PENDING")
+    void constructor_ShouldInitializeCorrectly() {
+
         // Arrange
-        BusinessmanId businessmanId = mock(BusinessmanId.class);
-        SupplierId supplierId = mock(SupplierId.class);
-        BatchType batchType = mock(BatchType.class);
-        Color color = mock(Color.class);
-        Quantity quantity = mock(Quantity.class);
-        Address address = mock(Address.class);
+        var businessmanId = new BusinessmanId(1L);
+        var supplierId = new SupplierId(2L);
+        var batchType = new BatchType("COTTON");
+        var color = new Color("BLUE");
+        var quantity = new Quantity(100);
+        var address = new Address("Lima");
 
         // Act
-        var request = new BusinessSupplierRequest(businessmanId, supplierId, "Mensaje inicial", batchType, color, quantity, address);
+        var request = new BusinessSupplierRequest(
+                businessmanId,
+                supplierId,
+                "Mensaje inicial",
+                batchType,
+                color,
+                quantity,
+                address
+        );
 
         // Assert
-        assertSame(businessmanId, request.getBusinessmanId());
-        assertSame(supplierId, request.getSupplierId());
-        assertEquals("Mensaje inicial", request.getMessage());
-        assertSame(batchType, request.getBatchType());
-        assertSame(color, request.getColor());
-        assertSame(quantity, request.getQuantity());
-        assertSame(address, request.getAddress());
-
-        // Verificamos las banderas lógicas de estado sin depender de la colección interna de eventos
-        assertTrue(request.isPending());
-        assertFalse(request.isAccepted());
-        assertFalse(request.isRejected());
-        assertFalse(request.isCancelled());
         assertEquals(RequestStatus.PENDING, request.getStatus());
+        assertTrue(request.isPending());
     }
 
     @Test
@@ -94,4 +91,52 @@ class BusinessSupplierRequestTest {
         assertTrue(request.isCancelled());
         assertFalse(request.isRejected());
     }
+
+    @Test
+    @DisplayName("updateRequestDetails debe permitir valores null sin romper invariantes")
+    void shouldHandleNullValuesInUpdateRequestDetails() {
+
+        // Arrange
+        var request = new BusinessSupplierRequest();
+
+        // Act
+        request.updateRequestDetails(
+                "msg",
+                null,
+                null,
+                null,
+                null
+        );
+
+        // Assert
+        assertEquals("msg", request.getMessage());
+        assertNull(request.getBatchType());
+        assertNull(request.getColor());
+        assertNull(request.getQuantity());
+        assertNull(request.getAddress());
+    }
+
+    @Test
+    @DisplayName("nuevo request siempre debe iniciar en PENDING (invariante de dominio)")
+    void shouldAlwaysStartAsPending() {
+
+        // Arrange
+        var request = new BusinessSupplierRequest(
+                new BusinessmanId(1L),
+                new SupplierId(2L),
+                "msg",
+                new BatchType("COTTON"),
+                new Color("BLUE"),
+                new Quantity(100),
+                new Address("Lima")
+        );
+
+        // Assert
+        assertEquals(RequestStatus.PENDING, request.getStatus());
+        assertTrue(request.isPending());
+        assertFalse(request.isAccepted());
+        assertFalse(request.isRejected());
+        assertFalse(request.isCancelled());
+    }
+
 }

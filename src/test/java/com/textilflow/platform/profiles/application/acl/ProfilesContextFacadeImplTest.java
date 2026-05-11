@@ -106,4 +106,20 @@ class ProfilesContextFacadeImplTest {
         // Assert 2
         assertEquals("Corp S", name2);
     }
+
+    @Test
+    @DisplayName("getCompanyNameByUserId debe retornar null si no existe ningún perfil")
+    void shouldReturnNull_WhenNoProfileExists() {
+        //Arrange
+        when(businessmanQueryService.handle(
+                any(GetBusinessmanByUserIdQuery.class)
+        )).thenReturn(Optional.empty());
+        when(supplierQueryService.handle(
+                any(GetSupplierByUserIdQuery.class)
+        )).thenReturn(Optional.empty());
+        //Act
+        var result = facade.getCompanyNameByUserId(1L);
+        //Assert
+        assertNull(result);
+    }
 }

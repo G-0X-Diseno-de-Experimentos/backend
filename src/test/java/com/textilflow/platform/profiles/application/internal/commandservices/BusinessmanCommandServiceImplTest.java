@@ -195,4 +195,80 @@ class BusinessmanCommandServiceImplTest {
         verify(profileImageService).deleteImage("http://cloud.url/logo.png");
         verify(businessmanRepository).save(businessman);
     }
+
+    @Test
+    @DisplayName("handle(UploadLogoCommand) no debe eliminar logo si no existe uno previo")
+    void handle_UploadLogo_ShouldNotDelete_WhenNoPreviousLogo() {
+
+        // Arrange
+        MultipartFile fileMock = mock(MultipartFile.class);
+        var command = mock(UploadLogoCommand.class);
+
+        when(command.userId()).thenReturn(100L);
+        when(command.logoFile()).thenReturn(fileMock);
+
+        Businessman businessman = spy(new Businessman(100L)); // sin logo
+        when(businessmanRepository.findByUserId(100L)).thenReturn(Optional.of(businessman));
+
+        when(profileImageService.uploadImage(100L, fileMock, "BUSINESSMAN"))
+                .thenReturn("http://new.url/logo.png");
+
+        when(businessmanRepository.save(businessman)).thenReturn(businessman);
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isPresent());
+        verify(profileImageService, never()).deleteImage(anyString());
+        verify(profileImageService).uploadImage(100L, fileMock, "BUSINESSMAN");
+    }
+
+    @Test
+    @DisplayName("handle(DeleteLogoCommand) no debe fallar si logo es null")
+    void handle_DeleteLogo_ShouldWork_WhenLogoIsNull() {
+
+        // Arrange
+        var command = mock(DeleteLogoCommand.class);
+        when(command.userId()).thenReturn(100L);
+
+        Businessman businessman = spy(new Businessman(100L)); // logo null
+
+        when(businessmanRepository.findByUserId(100L))
+                .thenReturn(Optional.of(businessman));
+
+        when(businessmanRepository.save(businessman))
+                .thenReturn(businessman);
+
+        // Act
+        var result = service.handle(command);
+
+        // Assert
+        assertTrue(result.isPresent());
+        verify(profileImageService, never()).deleteImage(anyString());
+    }
+
+    @Test
+    @DisplayName("handle(UploadLogoCommand) debe propagar error si upload falla")
+    void handle_UploadLogo_ShouldThrow_WhenUploadFails() {
+
+        // Arrange
+        MultipartFile fileMock = mock(MultipartFile.class);
+        var command = mock(UploadLogoCommand.class);
+
+        when(command.userId()).thenReturn(100L);
+        when(command.logoFile()).thenReturn(fileMock);
+
+        Businessman businessman = spy(new Businessman(100L));
+
+        when(businessmanRepository.findByUserId(100L))
+                .thenReturn(Optional.of(businessman));
+
+        when(profileImageService.uploadImage(anyLong(), any(), anyString()))
+                .thenThrow(new RuntimeException("Upload error"));
+
+        // Act + Assert
+        assertThrows(RuntimeException.class,
+                () -> service.handle(command));
+    }
 }

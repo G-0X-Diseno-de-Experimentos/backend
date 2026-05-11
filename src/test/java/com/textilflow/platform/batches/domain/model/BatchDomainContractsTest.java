@@ -143,4 +143,165 @@ class BatchDomainContractsTest {
         assertEquals(1L, created.batchId());
         assertEquals(1L, updated.batchId());
     }
+
+    @Test
+    @DisplayName("updateInformation debe actualizar todos los campos y retornar la misma instancia (AAA)")
+    void updateInformation_ShouldUpdateAllFieldsAndReturnSameInstance() {
+        // Arrange
+        Batch batch = new Batch();
+
+        LocalDate date = LocalDate.now();
+
+        // Act
+        Batch result = batch.updateInformation(
+                "C100",
+                "ClientX",
+                10L,
+                20L,
+                "Cotton",
+                "Blue",
+                100,
+                2500.0,
+                "Obs",
+                "Lima",
+                date,
+                BatchStatus.ENVIADO,
+                "http://img.png"
+        );
+
+        // Assert
+        assertSame(batch, result);
+
+        assertEquals("C100", batch.getCode());
+        assertEquals("ClientX", batch.getClient());
+        assertEquals(10L, batch.getBusinessmanId());
+        assertEquals(20L, batch.getSupplierId());
+        assertEquals("Cotton", batch.getFabricType());
+        assertEquals("Blue", batch.getColor());
+        assertEquals(100, batch.getQuantity());
+        assertEquals(2500.0, batch.getPrice());
+        assertEquals("Obs", batch.getObservations());
+        assertEquals("Lima", batch.getAddress());
+        assertEquals(date, batch.getDate());
+        assertEquals(BatchStatus.ENVIADO, batch.getStatus());
+        assertEquals("http://img.png", batch.getImageUrl());
+    }
+
+    @Test
+    @DisplayName("updateInformation debe permitir imageUrl null sin fallar (edge case)")
+    void updateInformation_ShouldAllowNullImageUrl() {
+        // Arrange
+        Batch batch = new Batch();
+
+        // Act
+        batch.updateInformation(
+                "C01",
+                "Client",
+                1L,
+                2L,
+                "Cotton",
+                "Red",
+                10,
+                100.0,
+                "Obs",
+                "Address",
+                LocalDate.now(),
+                BatchStatus.PENDIENTE,
+                null
+        );
+
+        // Assert
+        assertNull(batch.getImageUrl());
+        assertEquals("C01", batch.getCode());
+
+    }
+
+    @Test
+    @DisplayName("updateInformation debe aceptar strings vacíos (edge case de dominio flexible)")
+    void updateInformation_ShouldAllowEmptyStrings() {
+        // Arrange
+        Batch batch = new Batch();
+
+        // Act
+        batch.updateInformation(
+                "",
+                "",
+                1L,
+                2L,
+                "",
+                "",
+                0,
+                0.0,
+                "",
+                "",
+                LocalDate.now(),
+                BatchStatus.PENDIENTE,
+                ""
+        );
+
+        // Assert
+        assertEquals("", batch.getCode());
+        assertEquals("", batch.getClient());
+        assertEquals("", batch.getFabricType());
+        assertEquals("", batch.getColor());
+        assertEquals("", batch.getObservations());
+        assertEquals("", batch.getAddress());
+        assertEquals("", batch.getImageUrl());
+    }
+
+    @Test
+    @DisplayName("constructor desde command debe fallar si status es null (edge case)")
+    void constructorFromCommand_ShouldHandleNullStatus() {
+        // Act + Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                new CreateBatchCommand(
+                        "C01",
+                        "Client",
+                        1L,
+                        2L,
+                        "Type",
+                        "Color",
+                        10.0,
+                        5,
+                        "Obs",
+                        "Addr",
+                        LocalDate.now(),
+                        null,
+                        "url"
+                )
+        );
+
+        assertTrue(ex.getMessage().contains("Status"));
+    }
+
+    @Test
+    @DisplayName("updateInformation debe actualizar fecha correctamente incluso con misma referencia (edge case)")
+    void updateInformation_ShouldReplaceDateReference() {
+        // Arrange
+        Batch batch = new Batch();
+        LocalDate date1 = LocalDate.now();
+        LocalDate date2 = date1.plusDays(1);
+
+        // Act
+        batch.updateInformation(
+                "C01", "Client", 1L, 2L,
+                "T", "C", 1, 10.0,
+                "O", "A",
+                date1,
+                BatchStatus.PENDIENTE,
+                null
+        );
+
+        batch.updateInformation(
+                "C01", "Client", 1L, 2L,
+                "T", "C", 1, 10.0,
+                "O", "A",
+                date2,
+                BatchStatus.PENDIENTE,
+                null
+        );
+
+        // Assert
+        assertEquals(date2, batch.getDate());
+    }
 }
