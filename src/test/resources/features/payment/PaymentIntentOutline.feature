@@ -14,4 +14,4 @@ Feature: Payment Intent Validation
       | 100.0  | usd      | success |
       | 50.0   | eur      | success |
       | -10.0  | usd      | error   |
-      | 0.0    | usd      | error   |
+      | 0.0    | usd      |  error   |

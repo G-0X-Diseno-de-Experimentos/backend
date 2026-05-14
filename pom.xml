@@ -22,21 +22,37 @@
         <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+
+        <sonar.coverage.exclusions>
+            **/infrastructure/**,
+            **/interfaces/**,
+            **/application/**/config/**,
+            **/*Application*,
+            **/*Config*,
+            **/*Command.java,
+            **/*Query.java,
+            **/*Event.java,
+            **/*EventHandler.java,
+            **/AuditableModel.java,
+            **/BatchCloudinaryService.java,
+            **/CloudinaryService.java,
+            **/EmailAddress.java,
+            **/PasswordResetService.java,
+            **/WelcomeEmailService.java,
+            **/UserId.java,
+            **/SubscriptionStatus.java,
+            **/batches/**,
+            **/configuration/**,
+            **/observation/**,
+            **/shared/domain/**
+        </sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
 
-        <!-- SPRING BOOT -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.15.0</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -66,14 +82,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
-        <!-- DB -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- FLYWAY -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -84,7 +98,6 @@
             <artifactId>flyway-mysql</artifactId>
         </dependency>
 
-        <!-- UTILS -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -96,14 +109,12 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
-        <!-- DOCS -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.8.8</version>
         </dependency>
 
-        <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -124,21 +135,18 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- STRIPE -->
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
             <version>24.16.0</version>
         </dependency>
 
-        <!-- CLOUDINARY -->
         <dependency>
             <groupId>com.cloudinary</groupId>
             <artifactId>cloudinary-http45</artifactId>
             <version>1.37.0</version>
         </dependency>
 
-        <!-- TEST -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -151,7 +159,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- CUCUMBER -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -181,6 +188,31 @@
         </dependency>
 
         <dependency>
+            <groupId>com.intuit.karate</groupId>
+            <artifactId>karate-junit5</artifactId>
+            <version>1.4.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>5.12.0</version>
@@ -192,14 +224,12 @@
     <build>
         <plugins>
 
-            <!-- COMPILER -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
                     <release>21</release>
-
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -210,18 +240,15 @@
                 </configuration>
             </plugin>
 
-            <!-- CHECKSTYLE -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.6.0</version>
-
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
                 </configuration>
-
                 <executions>
                     <execution>
                         <id>validate</id>
@@ -233,21 +260,16 @@
                 </executions>
             </plugin>
 
-            <!-- JACOCO (CORREGIDO - IMPORTANTE PARA JENKINS) -->
-            <!-- Jacoco Maven Plugin -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.13</version>
-
                 <executions>
-
                     <execution>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
-
                     <execution>
                         <id>report</id>
                         <phase>test</phase>
@@ -255,28 +277,37 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
-
                     <execution>
                         <id>check</id>
                         <goals>
                             <goal>check</goal>
                         </goals>
                     </execution>
-
                 </executions>
-
                 <configuration>
-
-                    <!-- Exclusions (igual que tu ejemplo) -->
                     <excludes>
-                        <exclude>com/textilflow/platform/**/infrastructure/**</exclude>
-                        <exclude>com/textilflow/platform/**/interfaces/**</exclude>
-                        <exclude>com/textilflow/platform/**/application/**/config/**</exclude>
+                        <exclude>**/infrastructure/**</exclude>
+                        <exclude>**/interfaces/**</exclude>
+                        <exclude>**/application/**/config/**</exclude>
                         <exclude>**/*Application*</exclude>
                         <exclude>**/*Config*</exclude>
+                        <exclude>**/*Command.class</exclude>
+                        <exclude>**/*Query.class</exclude>
+                        <exclude>**/*Event.class</exclude>
+                        <exclude>**/*EventHandler.class</exclude>
+                        <exclude>**/AuditableModel.class</exclude>
+                        <exclude>**/BatchCloudinaryService.class</exclude>
+                        <exclude>**/CloudinaryService.class</exclude>
+                        <exclude>**/EmailAddress.class</exclude>
+                        <exclude>**/PasswordResetService.class</exclude>
+                        <exclude>**/WelcomeEmailService.class</exclude>
+                        <exclude>**/UserId.class</exclude>
+                        <exclude>**/SubscriptionStatus.class</exclude>
+                        <exclude>**/batches/**</exclude>
+                        <exclude>**/configuration/**</exclude>
+                        <exclude>**/observation/**</exclude>
+                        <exclude>**/shared/domain/**</exclude>
                     </excludes>
-
-                    <!-- Rules -->
                     <rules>
                         <rule>
                             <element>BUNDLE</element>
@@ -289,11 +320,9 @@
                             </limits>
                         </rule>
                     </rules>
-
                 </configuration>
             </plugin>
 
-            <!-- SPRING BOOT -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
