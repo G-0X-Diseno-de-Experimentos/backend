@@ -9,7 +9,7 @@
 ALTER TABLE configurations
     ADD CONSTRAINT FK_configurations_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (id)
+            REFERENCES user (id)
             ON DELETE CASCADE;
 
 -- ✅ 2. BUSINESSMEN TABLE
@@ -17,7 +17,7 @@ ALTER TABLE configurations
 ALTER TABLE businessmen
     ADD CONSTRAINT FK_businessmen_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (id)
+            REFERENCES user (id)
             ON DELETE CASCADE;
 
 -- ✅ 3. SUPPLIERS TABLE
@@ -25,19 +25,19 @@ ALTER TABLE businessmen
 ALTER TABLE suppliers
     ADD CONSTRAINT FK_suppliers_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (id)
+            REFERENCES user (id)
             ON DELETE CASCADE;
 
 -- ✅ 4. BATCHES TABLE
 -- Add foreign key from batches to businessmen (N:1 relationship)
-ALTER TABLE batches
+ALTER TABLE batch
     ADD CONSTRAINT FK_batches_businessman_id
         FOREIGN KEY (businessman_id)
             REFERENCES businessmen (user_id)
             ON DELETE SET NULL;
 
 -- Add foreign key from batches to suppliers (N:1 relationship)
-ALTER TABLE batches
+ALTER TABLE batch
     ADD CONSTRAINT FK_batches_supplier_id
         FOREIGN KEY (supplier_id)
             REFERENCES suppliers (user_id)
@@ -48,7 +48,7 @@ ALTER TABLE batches
 ALTER TABLE observations
     ADD CONSTRAINT FK_observations_batch_id
         FOREIGN KEY (batch_id)
-            REFERENCES batches (id)
+            REFERENCES batch (id)
             ON DELETE CASCADE;
 
 -- Add foreign key from observations to businessmen (N:1 relationship)
@@ -82,14 +82,14 @@ ALTER TABLE business_supplier_requests
 
 -- ✅ 7. SUPPLIER_REVIEWS TABLE
 -- Add foreign key from reviews to businessmen (N:1 relationship)
-ALTER TABLE supplier_reviews
+ALTER TABLE supplier_review
     ADD CONSTRAINT FK_reviews_businessman_id
         FOREIGN KEY (businessman_id)
             REFERENCES businessmen (user_id)
             ON DELETE CASCADE;
 
 -- Add foreign key from reviews to suppliers (N:1 relationship)
-ALTER TABLE supplier_reviews
+ALTER TABLE supplier_review
     ADD CONSTRAINT FK_reviews_supplier_id
         FOREIGN KEY (supplier_id)
             REFERENCES suppliers (user_id)
@@ -113,12 +113,12 @@ ALTER TABLE configurations
 
 -- Index on foreign key columns for better query performance
 -- Note: MySQL doesn't support IF NOT EXISTS for indexes, so we create them directly
-CREATE INDEX IDX_batches_businessman_id ON batches (businessman_id);
-CREATE INDEX IDX_batches_supplier_id ON batches (supplier_id);
+CREATE INDEX IDX_batches_businessman_id ON batch (businessman_id);
+CREATE INDEX IDX_batches_supplier_id ON batch (supplier_id);
 CREATE INDEX IDX_observations_batch_id ON observations (batch_id);
 CREATE INDEX IDX_observations_businessman_id ON observations (businessman_id);
 CREATE INDEX IDX_observations_supplier_id ON observations (supplier_id);
 CREATE INDEX IDX_requests_businessman_id ON business_supplier_requests (businessman_id);
 CREATE INDEX IDX_requests_supplier_id ON business_supplier_requests (supplier_id);
-CREATE INDEX IDX_reviews_businessman_id ON supplier_reviews (businessman_id);
-CREATE INDEX IDX_reviews_supplier_id ON supplier_reviews (supplier_id);
+CREATE INDEX IDX_reviews_businessman_id ON supplier_review (businessman_id);
+CREATE INDEX IDX_reviews_supplier_id ON supplier_review (supplier_id);
