@@ -48,7 +48,7 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        withSonarQubeEnv('MiSonarServer') {
+        withSonarQubeEnv('TextilFlowSonarServer') {
           sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=textilflow-platform'
         }
         script {
