@@ -1,6 +1,0 @@
-workflow-aggregator
-git
-maven-plugin
-pipeline-stage-view
-pipeline-maven
-sonar
