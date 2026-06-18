@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -22,28 +25,58 @@ public class JwtTokenService implements TokenService {
     private static final String AUTHORIZATION_PARAMETER_NAME = "Authorization";
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
     private static final int TOKEN_BEGIN_INDEX = 7;
+    private static final int MINIMUM_SECRET_BYTES = 32;
+    private static final String DEVELOPMENT_FALLBACK_SECRET =
+            "WriteHereYourSecretStringForTokenSigningCredentials";
 
-    @Value("${authorization.jwt.secret}")
-    private String secret;
+    private final SecretKey signingKey;
+    private final long expirationDays;
 
-    @Value("${authorization.jwt.expiration.days}")
-    private int expirationDays;
+    public JwtTokenService(
+            @Value("${authorization.jwt.secret:}") String configuredSecret,
+            @Value("${authorization.jwt.expiration.days}") long expirationDays,
+            @Value("${spring.profiles.active:}") String activeProfiles) {
+        this.signingKey = Keys.hmacShaKeyFor(resolveSecret(configuredSecret, activeProfiles));
+        this.expirationDays = expirationDays;
+    }
 
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+    private byte[] resolveSecret(String configuredSecret, String activeProfiles) {
+        String normalizedSecret = configuredSecret == null ? "" : configuredSecret.trim();
+        if (normalizedSecret.isBlank()) {
+            if (isProductionProfileActive(activeProfiles)) {
+                throw new IllegalStateException(
+                        "JWT secret is blank. Set JWT_SECRET or authorization.jwt.secret with at least 32 bytes.");
+            }
+            logger.warn("JWT secret is blank. Using development fallback secret.");
+            normalizedSecret = DEVELOPMENT_FALLBACK_SECRET;
+        }
+
+        byte[] keyBytes = normalizedSecret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < MINIMUM_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT secret must be at least " + MINIMUM_SECRET_BYTES
+                            + " bytes. Update JWT_SECRET or authorization.jwt.secret.");
+        }
+        return keyBytes;
+    }
+
+    private boolean isProductionProfileActive(String activeProfiles) {
+        String profiles = activeProfiles == null ? "" : activeProfiles;
+        return Arrays.stream(profiles.split(","))
+                .map(String::trim)
+                .filter(profile -> !profile.isEmpty())
+                .anyMatch(profile -> profile.equalsIgnoreCase("production"));
     }
 
     @Override
     public String generateToken(String email) {
-        Date issuedAt = new Date();
-        Date expiration = new Date(issuedAt.getTime() + (expirationDays * 60 * 60 * 1000L)); // 1 hour in milliseconds
+        Instant now = Instant.now();
 
         return Jwts.builder()
                 .subject(email)
-                .issuedAt(issuedAt)
-                .expiration(expiration)
-                .signWith(getSigningKey())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(expirationDays, ChronoUnit.HOURS)))
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -51,7 +84,7 @@ public class JwtTokenService implements TokenService {
     public String getEmailFromToken(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -66,7 +99,7 @@ public class JwtTokenService implements TokenService {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token);
             return true;
@@ -93,15 +126,14 @@ public class JwtTokenService implements TokenService {
 
     @Override
     public String generateResetToken(String email, int expirationMinutes) {
-        Date issuedAt = new Date();
-        Date expiration = new Date(issuedAt.getTime() + (expirationMinutes * 60 * 1000L)); // minutos a milliseconds
+        Instant now = Instant.now();
 
         return Jwts.builder()
                 .subject("password-reset")
                 .claim("email", email)
-                .issuedAt(issuedAt)
-                .expiration(expiration)
-                .signWith(getSigningKey())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)))
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -109,7 +141,7 @@ public class JwtTokenService implements TokenService {
     public Claims validateResetToken(String token) {
         try {
             return Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
